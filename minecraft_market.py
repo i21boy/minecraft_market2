@@ -32,16 +32,24 @@ def view_market():
         gc = setup_google_sheets()
         sheet = gc.open('Minecraft Market').sheet1
         
-        # Try to get all records
-        data = sheet.get_all_records()
+        # Try to get all values instead of records
+        all_values = sheet.get_all_values()
         
-        # Check if any data was returned
-        if not data: # If data is an empty list
-             # Return an empty DataFrame with expected columns
+        # Check if any data was returned (even just headers)
+        if not all_values:
+             # Return an empty DataFrame with expected columns if completely empty
             return pd.DataFrame(columns=["Item", "Price", "Seller"])
         else:
-            # Otherwise, create DataFrame from the data
-            return pd.DataFrame(data)
+            # Assume the first row is the header
+            headers = all_values[0]
+            # The rest are the data rows
+            data_rows = all_values[1:]
+
+            # Create DataFrame
+            if not data_rows: # If only headers were returned
+                 return pd.DataFrame(columns=headers) # Create DataFrame with headers but no data
+            else:
+                 return pd.DataFrame(data_rows, columns=headers) # Create DataFrame with headers and data
             
     except FileNotFoundError: # Keep this for local testing if needed, though GSheets won't raise it
          return pd.DataFrame(columns=["Item", "Price", "Seller"])
@@ -54,6 +62,9 @@ def delete_item(index):
     try:
         gc = setup_google_sheets()
         sheet = gc.open('Minecraft Market').sheet1
+        # Add 2 because Google Sheets is 1-indexed and has a header row
+        # Note: This assumes a header row is present. If the sheet is truly empty
+        # and you haven't added a header row, this might still cause issues.
         sheet.delete_rows(index + 2)
         return True
     except Exception as e:
@@ -95,10 +106,17 @@ def main():
                     # Recreate the display string for comparison
                     item_display_strings = [f"{row['Item']} - {row['Price']} coins - {row['Seller']}" for index, row in df.iterrows()]
                     if selected_item in item_display_strings:
-                        selected_index_in_df = item_display_strings.index(selected_item)
-                        original_index = df.index[selected_index_in_df] # Get the original DataFrame index
+                        # Find the index in the display strings list
+                        selected_index_in_list = item_display_strings.index(selected_item)
+                        # The index in the DataFrame corresponds to this index in the list
+                        # Since we are using get_all_values and handling headers manually,
+                        # the DataFrame index should align with the original row index minus the header.
+                        # The delete_rows method uses the actual row number (1-indexed).
+                        # So, if the selected item was at index 0 in the list/DataFrame (after headers),
+                        # it corresponds to row 2 in the sheet.
+                        original_sheet_row_to_delete = selected_index_in_list + 2 # +1 for 0-indexing to 1-indexing, +1 for header row
 
-                        if delete_item(original_index): # Use the original DataFrame index for deletion
+                        if delete_item(original_sheet_row_to_delete - 2): # Pass the DataFrame index to delete_item which adds 2
                             st.success("Item deleted!")
                             st.rerun()
                         else:
@@ -117,5 +135,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
             
