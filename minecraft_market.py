@@ -32,8 +32,10 @@ def view_market():
         gc = setup_google_sheets()
         sheet = gc.open('Minecraft Market').sheet1
         
-        # Try to get all values instead of records
-        all_values = sheet.get_all_values()
+        # Try to get all values by specifying a range
+        # Read a generous range (e.g., up to row 1000, column Z)
+        # Adjust the range if you expect more data
+        all_values = sheet.get_values('A1:Z1000')
         
         # Check if any data was returned (even just headers)
         if not all_values:
@@ -47,9 +49,23 @@ def view_market():
 
             # Create DataFrame
             if not data_rows: # If only headers were returned
-                 return pd.DataFrame(columns=headers) # Create DataFrame with headers but no data
+                 # Ensure headers have no empty strings if range read beyond actual data
+                 cleaned_headers = [h for h in headers if h]
+                 # Ensure we have at least the expected columns if headers are missing/empty
+                 if not cleaned_headers:
+                     cleaned_headers = ["Item", "Price", "Seller"]
+                 return pd.DataFrame(columns=cleaned_headers) # Create DataFrame with headers but no data
             else:
-                 return pd.DataFrame(data_rows, columns=headers) # Create DataFrame with headers and data
+                 # Ensure headers match the number of columns in data_rows
+                 # This can happen if reading a range includes empty cells in header row beyond actual data
+                 cleaned_headers = [h for h in headers[:len(data_rows[0])] if h]
+                 # Ensure we have at least the expected columns if headers are missing/empty
+                 if not cleaned_headers:
+                      cleaned_headers = ["Item", "Price", "Seller"]
+                 # Pad data rows with empty strings if they are shorter than headers (unlikely with get_values but defensive)
+                 padded_data_rows = [row + [''] * (len(cleaned_headers) - len(row)) for row in data_rows]
+
+                 return pd.DataFrame(padded_data_rows, columns=cleaned_headers) # Create DataFrame with headers and data
             
     except FileNotFoundError: # Keep this for local testing if needed, though GSheets won't raise it
          return pd.DataFrame(columns=["Item", "Price", "Seller"])
@@ -116,7 +132,7 @@ def main():
                         # it corresponds to row 2 in the sheet.
                         original_sheet_row_to_delete = selected_index_in_list + 2 # +1 for 0-indexing to 1-indexing, +1 for header row
 
-                        if delete_item(original_sheet_row_to_delete - 2): # Pass the DataFrame index to delete_item which adds 2
+                        if delete_item(selected_index_in_list): # Pass the 0-indexed list index to delete_item
                             st.success("Item deleted!")
                             st.rerun()
                         else:
@@ -125,6 +141,8 @@ def main():
                         st.error("Selected item not found in the current market list.")
                 except Exception as e:
                     st.error(f"Error finding item index: {type(e).__name__}: {e}")
+        else:
+            st.error("Market data is in an unexpected format.")
         
         # Show the full table
         st.subheader("All Items")
