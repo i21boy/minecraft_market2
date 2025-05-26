@@ -22,7 +22,7 @@ def setup_google_sheets():
 def add_items(item, price, seller):
     try:
         gc = setup_google_sheets()
-        sheet = gc.open('Minecraft Market').sheet1
+        sheet = gc.open('minecraft market').sheet1
         sheet.append_row([item, price, seller])
     except Exception as e:
         st.error(f"Error adding item: {type(e).__name__}: {e}")
@@ -30,7 +30,7 @@ def add_items(item, price, seller):
 def view_market():
     try:
         gc = setup_google_sheets()
-        sheet = gc.open('Minecraft Market').sheet1
+        sheet = gc.open('minecraft market').sheet1
         
         # Try to get all values by specifying a range
         # Read a generous range (e.g., up to row 1000, column Z)
@@ -77,7 +77,7 @@ def view_market():
 def delete_item(index):
     try:
         gc = setup_google_sheets()
-        sheet = gc.open('Minecraft Market').sheet1
+        sheet = gc.open('minecraft market').sheet1
         # Add 2 because Google Sheets is 1-indexed and has a header row
         # Note: This assumes a header row is present. If the sheet is truly empty
         # and you haven't added a header row, this might still cause issues.
