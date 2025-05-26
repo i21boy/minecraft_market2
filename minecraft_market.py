@@ -20,9 +20,12 @@ def setup_google_sheets():
     return gc
 
 def add_items(item, price, seller):
-    gc = setup_google_sheets()
-    sheet = gc.open('Minecraft Market').sheet1
-    sheet.append_row([item, price, seller])
+    try:
+        gc = setup_google_sheets()
+        sheet = gc.open('Minecraft Market').sheet1
+        sheet.append_row([item, price, seller])
+    except Exception as e:
+        st.error(f"Error adding item: {type(e).__name__}: {e}")
 
 def view_market():
     try:
@@ -31,7 +34,7 @@ def view_market():
         data = sheet.get_all_records()
         return pd.DataFrame(data)
     except Exception as e:
-        st.error(f"Error accessing Google Sheet: {e}")
+        st.error(f"Error accessing Google Sheet: {type(e).__name__}: {e}")
         return pd.DataFrame(columns=["Item", "Price", "Seller"])
 
 def delete_item(index):
@@ -41,7 +44,7 @@ def delete_item(index):
         sheet.delete_rows(index + 2)
         return True
     except Exception as e:
-        st.error(f"Error deleting item: {e}")
+        st.error(f"Error deleting item: {type(e).__name__}: {e}")
         return False
 
 def main():
