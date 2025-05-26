@@ -11,8 +11,8 @@ def setup_google_sheets():
         'https://www.googleapis.com/auth/drive'
     ]
     
-    credentials = Credentials.from_service_account_file(
-        'credentials.json',
+    credentials = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
         scopes=scopes
     )
     
