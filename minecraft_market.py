@@ -34,26 +34,33 @@ def view_market():
         gc = setup_google_sheets()
         sheet = gc.open('minecraft market').sheet1
         
-        # Try to get all values by specifying a range
-        # Read a generous range (e.g., up to row 1000, column Z)
-        # Adjust the range if you expect more data
-        all_values = sheet.get_values('A1:Z1000')
+        # *** Test reading the first row explicitly ***
+        try:
+            header_row_values = sheet.row_values(1) # Read the first row
+            st.write("DEBUG: Successfully read header row:", header_row_values)
+        except Exception as e:
+             st.error(f"DEBUG: Failed to read header row: {type(e).__name__}: {e}")
+             # If reading header fails, return empty DataFrame and stop
+             return pd.DataFrame(columns=["Item", "Price", "Seller"])
+
+        # Original logic to get all values (keeping for now, but main focus is above test)
+        all_values = sheet.get_values('A1:Z1000') # Using get_values as in previous attempt
         
-        st.write("DEBUG: Data read from sheet:", all_values)
+        st.write("DEBUG: Data read from sheet (get_values):", all_values)
         
         # Check if any data was returned (even just headers)
         if not all_values:
-            st.write("DEBUG: Sheet is completely empty.")
+            st.write("DEBUG: Sheet is completely empty via get_values.")
             return pd.DataFrame(columns=["Item", "Price", "Seller"])
         else:
-            st.write("DEBUG: Sheet has values.")
+            st.write("DEBUG: Sheet has values via get_values.")
             # Assume the first row is the header
             headers = all_values[0]
-            st.write("DEBUG: Headers detected:", headers)
+            st.write("DEBUG: Headers detected from get_values:", headers)
 
             # The rest are the data rows
             data_rows = all_values[1:]
-            st.write("DEBUG: Data rows detected:", data_rows)
+            st.write("DEBUG: Data rows detected from get_values:", data_rows)
 
             # Clean headers - remove empty strings if range read extends beyond actual columns
             cleaned_headers = [h for h in headers if h]
@@ -66,11 +73,11 @@ def view_market():
 
             # Create DataFrame
             if not data_rows: # If only headers were returned
-                st.write("DEBUG: Only headers found, no data rows.")
+                st.write("DEBUG: Only headers found, no data rows via get_values.")
                 # Create DataFrame with headers but no data
                 return pd.DataFrame(columns=cleaned_headers)
             else:
-                st.write("DEBUG: Headers and data rows found.")
+                st.write("DEBUG: Headers and data rows found via get_values.")
                 # Ensure data rows have the same number of columns as cleaned headers
                 # Pad data rows with empty strings if they are shorter than headers
                 # This can happen if get_values reads a rectangular range into jagged data
@@ -88,6 +95,7 @@ def view_market():
         st.error("DEBUG: FileNotFoundError caught.")
         return pd.DataFrame(columns=["Item", "Price", "Seller"])
     except Exception as e:
+        # This is where the unusual <Response [200]> error might be coming from
         st.error(f"Error accessing Google Sheet: {type(e).__name__}: {e}")
         # Ensure an empty DataFrame is returned even on other errors
         return pd.DataFrame(columns=["Item", "Price", "Seller"])
@@ -143,9 +151,9 @@ def main():
                 try:
                     # Recreate the display string for comparison
                     matching_rows = df[
-                        (df['Item'] == selected_item.split(' - ')[0]) &
-                        (df['Price'] == selected_item.split(' - ')[1].replace(' coins', '').strip()) &
-                        (df['Seller'] == selected_item.split(' - ')[2].replace('Seller: ', '').strip())
+                        (df['Item'].astype(str) == selected_item.split(' - ')[0]) &
+                        (df['Price'].astype(str) == selected_item.split(' - ')[1].replace(' coins', '').strip()) &
+                        (df['Seller'].astype(str) == selected_item.split(' - ')[2].replace('Seller: ', '').strip())
                     ]
 
                     if not matching_rows.empty:
