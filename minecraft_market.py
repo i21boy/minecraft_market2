@@ -47,15 +47,21 @@ def delete_item(record_id):
         return False
 
 def main():
-    # Only call rerun at the top level
-    if st.session_state.get("rerun", False):
+    # Initialize session state for rerun if not exists
+    if "rerun" not in st.session_state:
+        st.session_state.rerun = False
+
+    # Handle rerun at the very top
+    if st.session_state.rerun:
         st.session_state.rerun = False
         st.experimental_rerun()
         return
 
     st.title("Minecraft Market")
+    
+    # Load market data
     df = view_market()
-
+    
     # Sidebar for adding and deleting items
     with st.sidebar:
         st.header("Add New Item")
@@ -76,31 +82,41 @@ def main():
 
         st.header("Delete Item")
         if not df.empty:
+            # Create display column for selection
             df["display"] = df.apply(lambda row: f"{row['Item']} - {row['Price']} coins - {row['Seller']}", axis=1)
             items_to_delete = df["display"].tolist()
+            
+            # Use a unique key for the selectbox
             selected_item = st.selectbox("Select item to delete:", items_to_delete, key="delete_select")
+            
             if st.button("Delete Selected Item"):
-                record_id = df[df["display"] == selected_item]["_record_id"].values[0]
-                if delete_item(record_id):
-                    st.success("Item deleted!")
-                    st.session_state.rerun = True
-                    return
-                else:
-                    st.error("Failed to delete item.")
+                try:
+                    record_id = df[df["display"] == selected_item]["_record_id"].values[0]
+                    if delete_item(record_id):
+                        st.success("Item deleted!")
+                        st.session_state.rerun = True
+                        return
+                    else:
+                        st.error("Failed to delete item.")
+                except Exception as e:
+                    st.error(f"Error during deletion: {str(e)}")
         else:
             st.info("Market is empty. Add some items!")
 
     # Main area for viewing market
     st.header("Market Items")
     if not df.empty:
-        cols_to_drop = [col for col in ["display", "_record_id"] if col in df.columns]
-        st.dataframe(df.drop(columns=cols_to_drop), use_container_width=True)
+        # Safely drop columns that might not exist
+        display_df = df.copy()
+        for col in ["display", "_record_id"]:
+            if col in display_df.columns:
+                display_df = display_df.drop(columns=[col])
+        st.dataframe(display_df, use_container_width=True)
     else:
         st.info("Market is empty. Add some items!")
 
 if __name__ == "__main__":
     main()
-
 
 
 
