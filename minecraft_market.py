@@ -47,6 +47,11 @@ def delete_item(record_id):
         return False
 
 def main():
+    if "rerun" in st.session_state and st.session_state.rerun:
+        st.session_state.rerun = False
+        st.experimental_rerun()
+        return
+
     st.title("Minecraft Market")
 
     # Only call view_market() once
@@ -63,7 +68,7 @@ def main():
             if item and price and seller:
                 if add_items(item, price, seller):
                     st.success("Item added successfully!")
-                    st.experimental_rerun()
+                    st.session_state.rerun = True
                     return
                 else:
                     st.error("Failed to add item.")
@@ -79,7 +84,7 @@ def main():
                 record_id = df[df["display"] == selected_item]["_record_id"].values[0]
                 if delete_item(record_id):
                     st.success("Item deleted!")
-                    st.experimental_rerun()
+                    st.session_state.rerun = True
                     return
                 else:
                     st.error("Failed to delete item.")
@@ -96,6 +101,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
