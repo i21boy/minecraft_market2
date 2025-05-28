@@ -86,7 +86,8 @@ def main():
     st.header("Market Items")
     df = view_market()
     if not df.empty:
-        st.dataframe(df.drop(columns=["display", "_record_id"]), use_container_width=True)
+        cols_to_drop = [col for col in ["display", "_record_id"] if col in df.columns]
+        st.dataframe(df.drop(columns=cols_to_drop), use_container_width=True)
     else:
         st.info("Market is empty. Add some items!")
 
