@@ -2,7 +2,7 @@ from pyairtable import Table
 import streamlit as st
 import pandas as pd
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Set page config with auto-refresh
 st.set_page_config(
@@ -11,9 +11,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# Add auto-refresh meta tag (5 seconds)
+# Add auto-refresh meta tag (5 minutes = 300 seconds)
 st.markdown("""
-    <meta http-equiv="refresh" content="5">
+    <meta http-equiv="refresh" content="300">
     """, unsafe_allow_html=True)
 
 # Airtable credentials from Streamlit secrets
@@ -60,13 +60,27 @@ def delete_item(record_id):
         st.error(f"Error deleting item: {type(e).__name__}: {e}")
         return False
 
+def get_next_refresh_time():
+    # Get current time
+    now = datetime.now()
+    # Calculate next refresh time (5 minutes from now)
+    next_refresh = now + timedelta(minutes=5)
+    # Format the time
+    return next_refresh.strftime("%H:%M:%S")
+
 def main():
     st.title("Minecraft Market")
     
-    # Add refresh status
+    # Add refresh status with countdown
     current_time = datetime.now().strftime("%H:%M:%S")
-    st.sidebar.markdown(f"🔄 Last refreshed: {current_time}")
-    st.sidebar.markdown("⏱️ Refreshing every 5 seconds")
+    next_refresh = get_next_refresh_time()
+    
+    # Create a container for the refresh info
+    refresh_info = st.sidebar.container()
+    with refresh_info:
+        st.markdown(f"🔄 Last refreshed: {current_time}")
+        st.markdown(f"⏱️ Next refresh at: {next_refresh}")
+        st.markdown("🔄 Refreshing every 5 minutes")
     
     # Initialize session state for form data
     if "form_submitted" not in st.session_state:
