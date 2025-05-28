@@ -49,7 +49,7 @@ def delete_item(record_id):
 def main():
     st.title("Minecraft Market")
 
-    # Sidebar for adding items
+    # Sidebar for adding and deleting items
     with st.sidebar:
         st.header("Add New Item")
         item = st.text_input("Item Name")
@@ -66,24 +66,26 @@ def main():
             else:
                 st.error("Please fill in all fields")
 
+        st.header("Delete Item")
+        df = view_market()
+        if not df.empty:
+            df["display"] = df.apply(lambda row: f"{row['Item']} - {row['Price']} coins - {row['Seller']}", axis=1)
+            items_to_delete = df["display"].tolist()
+            selected_item = st.selectbox("Select item to delete:", items_to_delete, key="delete_select")
+            if st.button("Delete Selected Item"):
+                record_id = df[df["display"] == selected_item]["_record_id"].values[0]
+                if delete_item(record_id):
+                    st.success("Item deleted!")
+                    st.rerun()
+                else:
+                    st.error("Failed to delete item.")
+        else:
+            st.info("Market is empty. Add some items!")
+
     # Main area for viewing market
     st.header("Market Items")
     df = view_market()
     if not df.empty:
-        st.subheader("Delete Item")
-        # Create a display column for selection
-        df["display"] = df.apply(lambda row: f"{row['Item']} - {row['Price']} coins - {row['Seller']}", axis=1)
-        items_to_delete = df["display"].tolist()
-        selected_item = st.selectbox("Select item to delete:", items_to_delete)
-        if st.button("Delete Selected Item"):
-            # Find the record ID for the selected item
-            record_id = df[df["display"] == selected_item]["_record_id"].values[0]
-            if delete_item(record_id):
-                st.success("Item deleted!")
-                st.rerun()
-            else:
-                st.error("Failed to delete item.")
-        st.subheader("All Items")
         st.dataframe(df.drop(columns=["display", "_record_id"]), use_container_width=True)
     else:
         st.info("Market is empty. Add some items!")
