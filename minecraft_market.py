@@ -68,6 +68,7 @@ def main():
                 if add_items(item, price, seller):
                     st.success("Item added successfully!")
                     st.session_state.rerun = True
+                    return
                 else:
                     st.error("Failed to add item.")
             else:
@@ -83,6 +84,7 @@ def main():
                 if delete_item(record_id):
                     st.success("Item deleted!")
                     st.session_state.rerun = True
+                    return
                 else:
                     st.error("Failed to delete item.")
         else:
@@ -98,6 +100,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
