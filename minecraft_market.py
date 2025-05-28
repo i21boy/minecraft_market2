@@ -49,6 +49,9 @@ def delete_item(record_id):
 def main():
     st.title("Minecraft Market")
 
+    # Only call view_market() once
+    df = view_market()
+
     # Sidebar for adding and deleting items
     with st.sidebar:
         st.header("Add New Item")
@@ -60,14 +63,13 @@ def main():
             if item and price and seller:
                 if add_items(item, price, seller):
                     st.success("Item added successfully!")
-                    st.rerun()
+                    st.experimental_rerun()
                 else:
                     st.error("Failed to add item.")
             else:
                 st.error("Please fill in all fields")
 
         st.header("Delete Item")
-        df = view_market()
         if not df.empty:
             df["display"] = df.apply(lambda row: f"{row['Item']} - {row['Price']} coins - {row['Seller']}", axis=1)
             items_to_delete = df["display"].tolist()
@@ -76,7 +78,7 @@ def main():
                 record_id = df[df["display"] == selected_item]["_record_id"].values[0]
                 if delete_item(record_id):
                     st.success("Item deleted!")
-                    st.rerun()
+                    st.experimental_rerun()
                 else:
                     st.error("Failed to delete item.")
         else:
@@ -84,7 +86,6 @@ def main():
 
     # Main area for viewing market
     st.header("Market Items")
-    df = view_market()
     if not df.empty:
         cols_to_drop = [col for col in ["display", "_record_id"] if col in df.columns]
         st.dataframe(df.drop(columns=cols_to_drop), use_container_width=True)
@@ -93,6 +94,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
