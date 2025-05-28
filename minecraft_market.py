@@ -10,6 +10,10 @@ table_name = st.secrets["airtable"]["table_name"]
 table = Table(token, base_id, table_name)
 
 def add_items(item, price, seller):
+    # Remove any accidental extra quotes from user input
+    item = item.strip('"')
+    price = price.strip('"')
+    seller = seller.strip('"')
     try:
         table.create({"Item": item, "Price": price, "Seller": seller})
         return True
