@@ -47,17 +47,11 @@ def delete_item(record_id):
         return False
 
 def main():
-    # Initialize session state for rerun if not exists
-    if "rerun" not in st.session_state:
-        st.session_state.rerun = False
-
-    # Handle rerun at the very top
-    if st.session_state.rerun:
-        st.session_state.rerun = False
-        st.experimental_rerun()
-        return
-
     st.title("Minecraft Market")
+    
+    # Initialize session state for form data
+    if "form_submitted" not in st.session_state:
+        st.session_state.form_submitted = False
     
     # Load market data
     df = view_market()
@@ -65,20 +59,21 @@ def main():
     # Sidebar for adding and deleting items
     with st.sidebar:
         st.header("Add New Item")
-        item = st.text_input("Item Name")
-        price = st.text_input("Price (coins)")
-        seller = st.text_input("Seller Name")
-
-        if st.button("Add Item"):
-            if item and price and seller:
-                if add_items(item, price, seller):
-                    st.success("Item added successfully!")
-                    st.session_state.rerun = True
-                    return
+        with st.form("add_item_form"):
+            item = st.text_input("Item Name")
+            price = st.text_input("Price (coins)")
+            seller = st.text_input("Seller Name")
+            add_submitted = st.form_submit_button("Add Item")
+            
+            if add_submitted:
+                if item and price and seller:
+                    if add_items(item, price, seller):
+                        st.success("Item added successfully!")
+                        st.session_state.form_submitted = True
+                    else:
+                        st.error("Failed to add item.")
                 else:
-                    st.error("Failed to add item.")
-            else:
-                st.error("Please fill in all fields")
+                    st.error("Please fill in all fields")
 
         st.header("Delete Item")
         if not df.empty:
@@ -86,20 +81,20 @@ def main():
             df["display"] = df.apply(lambda row: f"{row['Item']} - {row['Price']} coins - {row['Seller']}", axis=1)
             items_to_delete = df["display"].tolist()
             
-            # Use a unique key for the selectbox
-            selected_item = st.selectbox("Select item to delete:", items_to_delete, key="delete_select")
-            
-            if st.button("Delete Selected Item"):
-                try:
-                    record_id = df[df["display"] == selected_item]["_record_id"].values[0]
-                    if delete_item(record_id):
-                        st.success("Item deleted!")
-                        st.session_state.rerun = True
-                        return
-                    else:
-                        st.error("Failed to delete item.")
-                except Exception as e:
-                    st.error(f"Error during deletion: {str(e)}")
+            with st.form("delete_item_form"):
+                selected_item = st.selectbox("Select item to delete:", items_to_delete, key="delete_select")
+                delete_submitted = st.form_submit_button("Delete Selected Item")
+                
+                if delete_submitted:
+                    try:
+                        record_id = df[df["display"] == selected_item]["_record_id"].values[0]
+                        if delete_item(record_id):
+                            st.success("Item deleted!")
+                            st.session_state.form_submitted = True
+                        else:
+                            st.error("Failed to delete item.")
+                    except Exception as e:
+                        st.error(f"Error during deletion: {str(e)}")
         else:
             st.info("Market is empty. Add some items!")
 
@@ -114,6 +109,10 @@ def main():
         st.dataframe(display_df, use_container_width=True)
     else:
         st.info("Market is empty. Add some items!")
+
+    # Reset form submitted state after displaying the updated data
+    if st.session_state.form_submitted:
+        st.session_state.form_submitted = False
 
 if __name__ == "__main__":
     main()
