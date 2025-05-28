@@ -47,14 +47,13 @@ def delete_item(record_id):
         return False
 
 def main():
-    if "rerun" in st.session_state and st.session_state.rerun:
+    # Only call rerun at the top level
+    if st.session_state.get("rerun", False):
         st.session_state.rerun = False
         st.experimental_rerun()
         return
 
     st.title("Minecraft Market")
-
-    # Only call view_market() once
     df = view_market()
 
     # Sidebar for adding and deleting items
@@ -69,7 +68,6 @@ def main():
                 if add_items(item, price, seller):
                     st.success("Item added successfully!")
                     st.session_state.rerun = True
-                    return
                 else:
                     st.error("Failed to add item.")
             else:
@@ -85,7 +83,6 @@ def main():
                 if delete_item(record_id):
                     st.success("Item deleted!")
                     st.session_state.rerun = True
-                    return
                 else:
                     st.error("Failed to delete item.")
         else:
@@ -101,6 +98,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
