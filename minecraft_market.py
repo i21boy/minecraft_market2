@@ -4,17 +4,12 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta
 
-# Set page config with auto-refresh
+# Set page config
 st.set_page_config(
     page_title="Minecraft Market",
     page_icon="⛏️",
     layout="wide"
 )
-
-# Add auto-refresh meta tag (5 minutes = 300 seconds)
-st.markdown("""
-    <meta http-equiv="refresh" content="300">
-    """, unsafe_allow_html=True)
 
 # Airtable credentials from Streamlit secrets
 token = st.secrets["airtable"]["token"]
@@ -71,23 +66,22 @@ def get_next_refresh_time():
 def main():
     st.title("Minecraft Market")
     
-    # Add refresh status with countdown
+    # Initialize session state for form data and last update time
+    if "form_submitted" not in st.session_state:
+        st.session_state.form_submitted = False
+    if "last_update" not in st.session_state:
+        st.session_state.last_update = datetime.now()
+    
+    # Add refresh status
     current_time = datetime.now().strftime("%H:%M:%S")
-    next_refresh = get_next_refresh_time()
     
     # Create a container for the refresh info
     refresh_info = st.sidebar.container()
     with refresh_info:
-        st.markdown(f"🔄 Last refreshed: {current_time}")
-        st.markdown(f"⏱️ Next refresh at: {next_refresh}")
-        st.markdown("🔄 Refreshing every 5 minutes")
+        st.markdown(f"🔄 Last updated: {current_time}")
     
-    # Initialize session state for form data
-    if "form_submitted" not in st.session_state:
-        st.session_state.form_submitted = False
-    
-    # Load market data
-    df = view_market()
+    # Create a container for the market table
+    market_container = st.container()
     
     # Sidebar for adding and deleting items
     with st.sidebar:
@@ -103,12 +97,15 @@ def main():
                     if add_items(item, price, seller):
                         st.success("Item added successfully!")
                         st.session_state.form_submitted = True
+                        st.session_state.last_update = datetime.now()
+                        st.rerun()  # Trigger immediate update
                     else:
                         st.error("Failed to add item.")
                 else:
                     st.error("Please fill in all fields")
 
         st.header("Delete Item")
+        df = view_market()
         if not df.empty:
             # Create display column for selection
             df["display"] = df.apply(lambda row: f"{row['Item']} - {row['Price']} coins - {row['Seller']}", axis=1)
@@ -124,6 +121,8 @@ def main():
                         if delete_item(record_id):
                             st.success("Item deleted!")
                             st.session_state.form_submitted = True
+                            st.session_state.last_update = datetime.now()
+                            st.rerun()  # Trigger immediate update
                         else:
                             st.error("Failed to delete item.")
                     except Exception as e:
@@ -132,16 +131,18 @@ def main():
             st.info("Market is empty. Add some items!")
 
     # Main area for viewing market
-    st.header("Market Items")
-    if not df.empty:
-        # Safely drop columns that might not exist
-        display_df = df.copy()
-        for col in ["display", "_record_id"]:
-            if col in display_df.columns:
-                display_df = display_df.drop(columns=[col])
-        st.dataframe(display_df, use_container_width=True)
-    else:
-        st.info("Market is empty. Add some items!")
+    with market_container:
+        st.header("Market Items")
+        df = view_market()
+        if not df.empty:
+            # Safely drop columns that might not exist
+            display_df = df.copy()
+            for col in ["display", "_record_id"]:
+                if col in display_df.columns:
+                    display_df = display_df.drop(columns=[col])
+            st.dataframe(display_df, use_container_width=True)
+        else:
+            st.info("Market is empty. Add some items!")
 
     # Reset form submitted state after displaying the updated data
     if st.session_state.form_submitted:
